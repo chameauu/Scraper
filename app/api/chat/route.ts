@@ -54,10 +54,8 @@ export async function POST(req: Request) {
       try {
         const payload = JSON.stringify({ type, [type === "progress" ? "message" : "data"]: data }) + "\n";
         await writer.write(encoder.encode(payload));
-        // Ensure the write is flushed
-        await writer.ready;
-      } catch (e) {
-        console.error("Failed to send payload:", e);
+      } catch (e: any) {
+        // Silently ignore send errors (connection may be closed)
       }
     };
 
@@ -73,8 +71,10 @@ export async function POST(req: Request) {
       // Print to terminal so user can see in Node process
       originalConsoleLog(...args);
 
-      // Stream clean progress log to Web UI
-      sendPayload("progress", message);
+      // Stream clean progress log to Web UI (fire and forget - don't block on errors)
+      sendPayload("progress", message).catch(() => {
+        // Silently ignore send errors
+      });
     };
 
     // Asynchronously run scraper agent and stream progress
@@ -94,16 +94,16 @@ export async function POST(req: Request) {
 
         console.log(`🤖 Setting up tools for prompt: "${prompt}"`);
         
-        // Instantiate tools
+        // Instantiate tools (CSS schema generation disabled - using LLM only)
         const tools: any = {
           analyzePage: createPageAnalysisTool(page),
-          generateSchema: createSchemaGenerationTool(page),
-          extractWithSchema: createSchemaExtractionTool(
-            page, 
-            allExtractedItems, 
-            incrementalFile, 
-            { prompt, url: null }
-          ),
+          // generateSchema: createSchemaGenerationTool(page), // DISABLED
+          // extractWithSchema: createSchemaExtractionTool(     // DISABLED
+          //   page, 
+          //   allExtractedItems, 
+          //   incrementalFile, 
+          //   { prompt, url: null }
+          // ),
           searxngSearch: createSearchTool()
         };
 
@@ -127,8 +127,27 @@ export async function POST(req: Request) {
         }
 
         console.log(`🎉 Finished! Extracted ${items.length} items successfully.`);
+        
+        // Save final results to JSON file
+        if (items.length > 0) {
+          try {
+            const fs = await import('fs/promises');
+            const finalFile = `results/web_chat_${timestamp}_final.json`;
+            await fs.writeFile(finalFile, JSON.stringify({
+              timestamp: new Date().toISOString(),
+              prompt: prompt,
+              provider: providerLabel,
+              totalItems: items.length,
+              items: items
+            }, null, 2));
+            console.log(`💾 Saved ${items.length} items to ${finalFile}`);
+          } catch (saveErr: any) {
+            console.log(`⚠️ Failed to save results: ${saveErr.message}`);
+          }
+        }
+        
+        // Send result
         await sendPayload("result", items);
-
         // Give a small delay to ensure the result payload is sent
         await new Promise(resolve => setTimeout(resolve, 100));
 
