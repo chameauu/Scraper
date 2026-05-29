@@ -2,6 +2,12 @@
 node_modules/
 .pnpm-store/
 package-lock.json
+
+# Next.js
+.next/
+out/
+build/
+
 # Python
 .venv/
 __pycache__/
@@ -9,7 +15,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -36,25 +41,25 @@ wheels/
 *.swo
 *~
 
-results
-# Logs
+# Results and logs
+results/
 *.log
 lightpanda.log
-
 
 # Binary
 lightpanda
 
-selectors
+# Old/archived code (uncomment if you want to exclude)
+selectors/
 tests/
 tdd/
 scripts/
-schema_cache
-deep-dive
+schema_cache/
+deep-dive/
+examples/
+old/
 docs/
 
-examples
-old
 # OS
 .DS_Store
 Thumbs.db

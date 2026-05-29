@@ -1,0 +1,52 @@
+model_list:
+  # Azure OpenAI
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: azure/gpt-4o-mini
+      api_base: ${AZURE_API_BASE}
+      api_key: ${AZURE_API_KEY}
+      api_version: "2024-02-15-preview"
+  
+  # OpenAI
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: ${OPENAI_API_KEY}
+  
+  - model_name: gpt-4o-mini-openai
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: ${OPENAI_API_KEY}
+  
+  # Anthropic Claude
+  - model_name: claude-3-5-sonnet
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY}
+  
+  # Groq (Fast inference)
+  - model_name: llama-3.1-70b
+    litellm_params:
+      model: groq/llama-3.1-70b-versatile
+      api_key: ${GROQ_API_KEY}
+  
+  # Ollama (Local)
+  - model_name: llama3.2
+    litellm_params:
+      model: ollama/llama3.2
+      api_base: http://localhost:11434
+  
+  # DeepSeek (Cost-effective)
+  - model_name: deepseek-chat
+    litellm_params:
+      model: deepseek/deepseek-chat
+      api_key: ${DEEPSEEK_API_KEY}
+
+general_settings:
+  master_key: ${LITELLM_MASTER_KEY}
+  max_parallel_requests: 100
+  
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 2
+  timeout: 300

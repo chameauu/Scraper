@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm-proxy
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml
+    environment:
+      # LiteLLM Master Key
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234567890abcdef}
+      
+      # Azure OpenAI
+      - AZURE_API_KEY=${AZURE_API_KEY}
+      - AZURE_API_BASE=${AZURE_API_BASE}
+      
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # Anthropic
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      
+      # Groq
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      
+      # DeepSeek
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--detailed_debug"]
+    restart: unless-stopped
+    networks:
+      - scraper-network
+
+networks:
+  scraper-network:
+    driver: bridge
