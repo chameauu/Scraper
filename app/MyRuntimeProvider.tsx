@@ -1,7 +1,7 @@
 "use client";
 
-import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
-import { ReactNode, createContext, useContext, useState } from "react";
+import { AssistantRuntimeProvider, useLocalRuntime, useAssistantRuntime } from "@assistant-ui/react";
+import { ReactNode, createContext, useContext, useState, useEffect } from "react";
 import { LLMProvider } from "./types/provider";
 
 // Shared Scraper state context
@@ -15,6 +15,7 @@ interface ScrapedDataContextType {
   selectedProviderId: string;
   setSelectedProviderId: (id: string) => void;
   selectedProvider: LLMProvider | undefined;
+  sendMessage: (message: string) => void;
 }
 
 const ScrapedDataContext = createContext<ScrapedDataContextType | undefined>(undefined);
@@ -43,6 +44,7 @@ export function MyRuntimeProvider({
   const [scrapedData, setScrapedData] = useState<any[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [isScraping, setIsScraping] = useState<boolean>(false);
+  const [runtimeInstance, setRuntimeInstance] = useState<any>(null);
 
   const runtime = useLocalRuntime({
     async *run(options) {
@@ -59,29 +61,35 @@ export function MyRuntimeProvider({
       setLogs([]);
       setScrapedData([]);
 
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: query }],
-          provider: selectedProvider,
-        })
-      });
-
-      if (!response.body) {
-        setIsScraping(false);
-        throw new Error("No response body received from chat endpoint");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let accumulatedText = "";
+      // Yield initial empty state
+      yield { content: [{ type: "text", text: "" }] };
 
       try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: query }],
+            provider: selectedProvider,
+          })
+        });
+
+        if (!response.body) {
+          setIsScraping(false);
+          setLogs((prev) => [...prev, "❌ No response body received from server"]);
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            // Stream completed successfully
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
@@ -96,30 +104,41 @@ export function MyRuntimeProvider({
               if (parsed.type === "progress") {
                 const cleanMsg = parsed.message.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
                 setLogs((prev) => [...prev, cleanMsg]);
-                accumulatedText += cleanMsg + "\n";
-                yield { content: [{ type: "text", text: accumulatedText }] };
               } else if (parsed.type === "result") {
                 setScrapedData(parsed.data || []);
                 setIsScraping(false);
-                accumulatedText += `\n\n🎉 **Success!** Extracted ${parsed.data?.length || 0} items. View the dataset in the table browser on the left.`;
-                yield { content: [{ type: "text", text: accumulatedText }] };
+                setLogs((prev) => [...prev, `✅ Success! Extracted ${parsed.data?.length || 0} items. View in table browser.`]);
               }
             } catch (e) {
-              accumulatedText += line + "\n";
-              yield { content: [{ type: "text", text: accumulatedText }] };
+              // Ignore JSON parse errors for partial lines
             }
           }
         }
       } catch (err: any) {
-        setLogs((prev) => [...prev, `❌ Stream error: ${err.message}`]);
+        // Only log error if it's not a stream completion
+        if (err.message && !err.message.includes("input stream")) {
+          setLogs((prev) => [...prev, `❌ Error: ${err.message}`]);
+        }
         setIsScraping(false);
-        accumulatedText += `\n\n❌ **Failed:** ${err.message}`;
-        yield { content: [{ type: "text", text: accumulatedText }] };
       } finally {
         setIsScraping(false);
       }
     }
   });
+
+  useEffect(() => {
+    setRuntimeInstance(runtime);
+  }, [runtime]);
+
+  const sendMessage = (message: string) => {
+    if (runtimeInstance) {
+      // Use the correct API to send a message
+      runtimeInstance.thread.append({
+        role: "user",
+        content: [{ type: "text", text: message }]
+      });
+    }
+  };
 
   return (
     <ScrapedDataContext.Provider value={{ 
@@ -131,7 +150,8 @@ export function MyRuntimeProvider({
       setIsScraping, 
       selectedProviderId, 
       setSelectedProviderId,
-      selectedProvider 
+      selectedProvider,
+      sendMessage
     }}>
       <AssistantRuntimeProvider runtime={runtime}>
         {children}

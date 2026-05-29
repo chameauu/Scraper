@@ -54,8 +54,10 @@ export async function POST(req: Request) {
       try {
         const payload = JSON.stringify({ type, [type === "progress" ? "message" : "data"]: data }) + "\n";
         await writer.write(encoder.encode(payload));
+        // Ensure the write is flushed
+        await writer.ready;
       } catch (e) {
-        // Handle closed connection
+        console.error("Failed to send payload:", e);
       }
     };
 
@@ -127,9 +129,13 @@ export async function POST(req: Request) {
         console.log(`🎉 Finished! Extracted ${items.length} items successfully.`);
         await sendPayload("result", items);
 
+        // Give a small delay to ensure the result payload is sent
+        await new Promise(resolve => setTimeout(resolve, 100));
+
       } catch (err: any) {
         console.log(`❌ Scraper Thread Error: ${err.message}`);
         await sendPayload("progress", `❌ Error during run: ${err.message}`);
+        await new Promise(resolve => setTimeout(resolve, 100));
       } finally {
         // Restore original console.log immediately
         console.log = originalConsoleLog;
@@ -143,11 +149,14 @@ export async function POST(req: Request) {
           }
         }
         
-        try {
-          await writer.close();
-        } catch (e) {
-          // Ignore writer issues
-        }
+        // Close the writer after a small delay to ensure all data is sent
+        setTimeout(async () => {
+          try {
+            await writer.close();
+          } catch (e) {
+            // Ignore writer close issues
+          }
+        }, 200);
       }
     };
 

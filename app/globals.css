@@ -37,6 +37,15 @@ body {
 .aui-thread {
   background-color: transparent !important;
   color: #0f172a !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: auto !important;
+  min-height: auto !important;
+}
+
+/* Hide the messages container, only show composer */
+.aui-thread-viewport {
+  display: none !important;
 }
 
 .aui-message {

@@ -5,6 +5,7 @@ import { MyRuntimeProvider, useScrapedData } from "./MyRuntimeProvider";
 import { useState, useEffect, useRef } from "react";
 import { useProviders } from "./hooks/useProviders";
 import { AddProviderModal } from "./components/AddProviderModal";
+import { ChatInput } from "./components/ChatInput";
 import {
   Database,
   Terminal as TermIcon,
@@ -37,12 +38,20 @@ export default function ScraperDashboard() {
 }
 
 function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof useProviders> }) {
-  const { scrapedData, logs, isScraping, selectedProviderId, setSelectedProviderId } = useScrapedData();
+  const { scrapedData, logs, isScraping, selectedProviderId, setSelectedProviderId, selectedProvider, sendMessage } = useScrapedData();
   const [activeTab, setActiveTab] = useState<"table" | "json">("table");
   const [providerOpen, setProviderOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleSendMessage = (message: string) => {
+    if (!selectedProvider) {
+      alert("Please select an LLM provider first");
+      return;
+    }
+    sendMessage(message);
+  };
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -223,28 +232,6 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
 
           </div>
         </div>
-
-        {/* Live Logger */}
-        <div className="h-44 px-5 pb-5 z-10">
-          <div className="h-full border border-slate-200 bg-white rounded-xl overflow-hidden flex flex-col shadow-sm">
-            <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/80 flex items-center gap-2">
-              <TermIcon className="h-3.5 w-3.5 text-indigo-500" />
-              <span className="text-[10px] font-bold text-slate-700 tracking-widest uppercase">Live Crawler Console</span>
-            </div>
-            <div className="flex-1 p-3 font-mono text-[10px] overflow-y-auto text-slate-600 space-y-1.5">
-              {logs.length === 0 ? (
-                <div className="text-slate-400 italic">Waiting for crawling session logs…</div>
-              ) : (
-                logs.map((logLine, idx) => (
-                  <div key={idx} className="leading-relaxed border-l-2 border-indigo-400/50 pl-2">
-                    {logLine}
-                  </div>
-                ))
-              )}
-              <div ref={logEndRef} />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ── RIGHT PANEL ── */}
@@ -378,12 +365,64 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
           }}
         />
 
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col z-10 bg-slate-50/10">
-          <Thread
-            welcome={{
-              message: "Ask me to find and scrape any information. I will automatically query SearXNG, launch the headless Lightpanda browser, analyze page patterns, generate CSS schemas, and extract structured data!"
-            }}
+        {/* Chat Area with Live Console */}
+        <div className="flex-1 overflow-hidden flex flex-col z-10 bg-slate-50/10">
+          
+          {/* Live Crawler Console */}
+          <div className="flex-1 border-x border-t border-slate-200 bg-white overflow-hidden flex flex-col shadow-sm">
+            <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-100/50 flex items-center gap-2">
+              <TermIcon className="h-4 w-4 text-indigo-500" />
+              <span className="text-xs font-bold text-slate-700 tracking-wider uppercase">Live Crawler Console</span>
+              {isScraping && (
+                <span className="ml-auto flex items-center gap-1.5 text-[10px] text-amber-600 font-medium">
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                  </span>
+                  Scraping...
+                </span>
+              )}
+            </div>
+            <div className="flex-1 p-4 font-mono text-xs overflow-y-auto text-slate-600 space-y-2 bg-slate-50/30">
+              {logs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center py-12">
+                  <div className="p-4 rounded-full bg-indigo-50 mb-4">
+                    <TermIcon className="h-8 w-8 text-indigo-500" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700 mb-2">Ready to Scrape</p>
+                  <p className="text-xs text-slate-500 max-w-md">
+                    Ask me to find and scrape any information. I will automatically query SearXNG, 
+                    launch the headless Lightpanda browser, analyze page patterns, generate CSS schemas, 
+                    and extract structured data!
+                  </p>
+                  <div className="mt-6 flex items-center gap-2 text-[10px] text-slate-400">
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>Connected to CDP: ws://127.0.0.1:9222</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {logs.map((logLine, idx) => (
+                    <div key={idx} className="leading-relaxed border-l-2 border-indigo-400/50 pl-3 py-1 hover:bg-white/50 transition-colors">
+                      {logLine}
+                    </div>
+                  ))}
+                  <div ref={logEndRef} />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Hidden Thread for runtime */}
+          <div className="hidden">
+            <Thread />
+          </div>
+
+          {/* Custom Chat Input */}
+          <ChatInput
+            onSend={handleSendMessage}
+            disabled={isScraping}
+            placeholder="Ask me to scrape any website... (e.g., 'Find the top 10 books on books.toscrape.com')"
           />
         </div>
 
