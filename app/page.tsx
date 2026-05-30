@@ -191,7 +191,7 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
                 </button>
               </div>
 
-              {scrapedData && scrapedData.length > 0 && (
+              {Array.isArray(scrapedData) && scrapedData.length > 0 && (
                 <div className="flex items-center gap-2">
                   {activeTab === "table" && (
                     <button
@@ -217,7 +217,7 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
 
             {/* Tab Body */}
             <div className="flex-1 overflow-auto p-4 bg-slate-50/10">
-              {scrapedData && scrapedData.length > 0 ? (
+              {Array.isArray(scrapedData) && scrapedData.length > 0 ? (
                 activeTab === "table" ? (
                   <div className="w-full overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
@@ -265,7 +265,7 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
       <div className="w-1/2 flex flex-col h-full bg-white relative">
 
         {/* Chat Header — provider selector */}
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white z-10">
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white z-50">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-indigo-500" />
             <span className="text-xs text-slate-500 font-medium">Scraper Engine</span>
@@ -301,7 +301,7 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
             </button>
 
             {providerOpen && (
-              <div className="absolute right-0 mt-1.5 w-80 rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 z-50 overflow-hidden">
+              <div className="absolute right-0 mt-1.5 w-80 rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 z-[100] overflow-hidden">
                 <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">LLM Providers</p>
                   <button

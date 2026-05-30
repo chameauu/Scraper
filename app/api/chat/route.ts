@@ -19,27 +19,10 @@ export async function POST(req: Request) {
     // Extract provider configuration
     const llmProvider: LLMProvider = provider;
     
+    console.log("🔍 API Route - Provider received:", JSON.stringify(llmProvider, null, 2));
+    
     if (!llmProvider) {
       return NextResponse.json({ error: "No provider selected" }, { status: 400 });
-    }
-
-    // Build model string based on provider type
-    let modelString = "azure/gpt-4o-mini"; // Default fallback
-    
-    if (llmProvider.type === "azure") {
-      modelString = `azure/${llmProvider.model}`;
-    } else if (llmProvider.type === "openai") {
-      modelString = `openai/${llmProvider.model}`;
-    } else if (llmProvider.type === "anthropic") {
-      modelString = `anthropic/${llmProvider.model}`;
-    } else if (llmProvider.type === "groq") {
-      modelString = `groq/${llmProvider.model}`;
-    } else if (llmProvider.type === "ollama") {
-      modelString = `ollama/${llmProvider.model}`;
-    } else if (llmProvider.type === "deepseek") {
-      modelString = `deepseek/${llmProvider.model}`;
-    } else if (llmProvider.type === "custom") {
-      modelString = llmProvider.model;
     }
 
     const providerLabel = `${llmProvider.name} (${llmProvider.model})`;
@@ -87,8 +70,8 @@ export async function POST(req: Request) {
       try {
         console.log("⏳ Initializing Stagehand with Headless Lightpanda Browser...");
         
-        // Initialize browser Setup
-        const browserSetup = await initializeBrowser();
+        // Initialize browser Setup with provider configuration
+        const browserSetup = await initializeBrowser(llmProvider);
         stagehandInstance = browserSetup.stagehand;
         const page = browserSetup.page;
 
@@ -108,7 +91,7 @@ export async function POST(req: Request) {
         };
 
         console.log(`🤖 Creating Stagehand AI Agent with ${providerLabel}...`);
-        const agent = createAgent(stagehandInstance, tools, false, modelString);
+        const agent = createAgent(stagehandInstance, tools, false);
 
         console.log("🚀 Starting autonomous agent execution...");
         const result = await agent.execute({
