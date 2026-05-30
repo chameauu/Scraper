@@ -90,6 +90,20 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
     document.body.removeChild(link);
   };
 
+  const downloadJSON = () => {
+    if (!scrapedData || scrapedData.length === 0) return;
+    const jsonContent = JSON.stringify(scrapedData, null, 2);
+    const blob = new Blob([jsonContent], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `scraped_dataset_${Date.now()}.json`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getProviderBadgeColor = (type: string) => {
     const colors: Record<string, string> = {
       azure: "bg-sky-50 text-sky-700 border-sky-200",
@@ -178,13 +192,26 @@ function DashboardContent({ providerHook }: { providerHook: ReturnType<typeof us
               </div>
 
               {scrapedData && scrapedData.length > 0 && (
-                <button
-                  onClick={downloadCSV}
-                  className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download CSV
-                </button>
+                <div className="flex items-center gap-2">
+                  {activeTab === "table" && (
+                    <button
+                      onClick={downloadCSV}
+                      className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download CSV
+                    </button>
+                  )}
+                  {activeTab === "json" && (
+                    <button
+                      onClick={downloadJSON}
+                      className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download JSON
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
